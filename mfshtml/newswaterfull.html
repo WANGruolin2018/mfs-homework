@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>News WaterFall</title>
+    <script src="jquery-1.11.0.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            position: relative;
+        }
+
+        .box {
+            width: 500px;
+            padding: 10px 20px;
+            border: 1px solid gray;
+            background: rgb(250, 236, 219);
+            position: absolute;
+            margin: 20px 30px;
+            box-sizing: border-box;
+        }
+
+        .box img {
+            width: 100%;
+        }
+
+        .box a {
+            display: block;
+        }
+
+        .box a,
+        .box h2,
+        .box p {
+            color: black;
+            text-decoration: none;
+        }
+
+        .loadmore {
+            width: 500px;
+            height: 100px;
+            line-height: 100px;
+            text-align: center;
+            background: black;
+            color: white;
+            position: absolute;
+            font-size: 40px;
+
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+    </div>
+    <div class="loadmore">加载更多</div>
+
+</body>
+<script>
+    var pagecnt = 1;
+    var timer;
+    var heights = [];
+    var cols;
+    window.onload = function () {
+        $(".container").width($(window).width());
+        var contWidth = $(".container").width();
+        cols = Math.floor(contWidth / 600);
+        heights = new Array(cols);
+        initCols(cols);
+        //生成新闻瀑布流
+        getNews(pagecnt++);
+    }
+    window.onscroll = function () {
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+            if (isShow()) {
+                getNews(pagecnt++);
+            }
+        }, 100);
+
+    }
+    window.onresize = function () {
+        window.location.reload();
+        generateItem(5);
+    }
+    function getNews(pagenum) {
+        var newslist = [];
+        var datalist = [];
+        $.ajax({
+            url: "https://learning-api.mafengshe.com/news?page=" + pagenum + "&pagesize=10",
+            type: "GET",
+            async: false,
+            success: function (data) {
+                newslist = data.result.data.list;
+                for (var i = 0; i < newslist.length; ++i) {
+                    var news = { url: "", pic: "", title: "", summary: "" };
+                    news.url = newslist[i].URL;
+                    try {
+                        news.pic = newslist[i].allPics.pics[0].imgurl;
+                    } catch (e) {
+                    }
+                    news.title = newslist[i].title;
+                    news.summary = newslist[i].summary;
+                    datalist.push(news);
+                }
+                //加载页面
+                loadPage(datalist);
+            },
+            error: function (error) {
+                console.log(error);
+            }
+        })
+        return datalist;
+    }
+
+
+    //加载页面
+    function loadPage(datalist) {
+        for (var i = 0; i < datalist.length; ++i) {
+            //需要等待图片加载完毕再设置css
+            new Promise(function (resolve, reject) {
+                var $item = createItem(datalist[i]);
+                $item.children().first().find('img').load(function () {
+                    resolve($item);
+                });
+            }).then(function ($item) {
+                createWaterFall(cols, $item);
+            })
+        }
+    }
+
+    //动态生成元素
+    function createItem(data) {
+        var $box = $("<div class='box'></div>");
+        var $a = $("<a href=" + data.url + "></a>");
+        var $img = $("<img src=" + data.pic + ">");
+        $a.append($img);
+        var $title = $("<h2>" + data.title + "</h2>");
+        $a.append($title);
+        var $summary = $("<p>" + data.summary + "</p>");
+        $a.append($summary);
+        $box.append($a);
+        return $box;
+    }
+
+
+
+    //图片加载完成后形成瀑布流
+    function createWaterFall(cols, $item) {
+        minCol = getMinCol(cols);
+        $(".container").append($item);
+        var width = $item.outerWidth(true);
+        $item.css({ "top": heights[minCol] + "px", "left": minCol * width + "px" });
+        heights[minCol] = heights[minCol] + $item.outerHeight(true);
+        var $maxh = heights[Math.floor(cols / 2) - 1] > heights[Math.floor(cols / 2)] ? heights[Math.floor(cols / 2) - 1] : heights[Math.floor(cols / 2)];
+        $(".loadmore").css({ "top": $maxh + 50 + "px", "left": (Math.floor(cols / 2) - 0.5) * width + "px" });
+    }
+
+
+    //判断“加载更多”按钮是否在视口中
+    function isShow() {
+        if ($(".loadmore").offset().top + $(".loadmore").height() >= $(document).scrollTop()
+            && $(".loadmore").offset().top <= $(document).scrollTop() + $(window).height()) {
+            return true;
+        }
+        return false;
+    }
+    //初始化高度为0
+    function initCols(cols) {
+        for (var i = 0; i < cols; ++i) {
+            heights[i] = 0;
+        }
+    }
+    //返回最小高度的一列
+    function getMinCol(cols) {
+        minCol = 0;
+        for (var i = 0; i < cols; ++i) {
+            if (heights[i] < heights[minCol]) {
+                minCol = i;
+            }
+        }
+        return minCol;
+    }
+
+</script>
+
+</html>
+
