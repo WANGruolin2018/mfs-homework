@@ -1,0 +1,114 @@
+<html >
+<head>
+    <script src="https://unpkg.com/vue@2.3.4/dist/vue.js"></script>
+    <title>ToDoList</title>
+    <style>
+        body{
+            padding:0;
+            margin:0
+        }
+        .choss{
+            background:rgb(246, 244, 247);
+            color: rgb(12, 141, 34);
+            border: 1px ;
+            border-radius: 360px;
+        }
+        ul{
+            padding:0;
+            margin: 0;
+            list-style: none;
+        }
+        .completed{
+            color:#d9d9d9;
+            text-decoration: line-through;
+        }
+        input[type=checkbox]{
+                width: 15px;
+                height: 15px;
+                visibility:hidden;
+                border-radius: 360px;
+            }
+            input[type=checkbox]:after
+            {
+                width: 100%;
+                height: 100%;
+                content: " ";
+                background-color:#f5f6fa;
+                display: inline-block;
+                visibility: visible;
+                border-radius: 360px;
+                margin-top: 2px;
+            }
+            input[type=checkbox]:checked:after {
+                content: "\2713";/*UNICODE中对号*/
+                font-weight: bold;
+                color: rgb(18, 105, 55);
+            }
+    </style>
+</head>
+<body>
+    <div id='app'>
+        <input type="checkbox" v-model='alldone'>
+        <input type='text' v-model='newTodo' @keyup.enter='addnewtodo()'></input>
+        <ul >
+            <li v-for='(i,idx) in filetodos' :class="i.state==1?'completed':'' ">
+                <input type="checkbox" v-model='i.state'>{{i.name}}
+                <button @click="deltodos(idx)" class='choss'>x</button>
+            </li>
+        </ul>
+        <span>{{leftodonum}} items left</span>
+        <button @click="visibility='all'">all</button>
+        <button @click="visibility='active'">active</button>
+        <button @click="visibility='completed'">completed</button>
+        <button @click="cleartodos()" v-if='completetodonum'>cleartodos</button>
+    </div>
+    <script>
+        var app=new Vue({
+            el:"#app",
+            data:{
+                todos:[{name:"aa",state:true}],
+                newTodo:"",
+                visibility:"all",
+                alldone:false
+            },
+            watch:{
+                alldone:function(val){
+                    this.todos.map(i=>{
+                        i.state=val
+                        return i})
+                }
+            },
+            methods:{
+                addnewtodo:function(){
+                    if(this.newTodo=='')
+                      return
+                    var todo={name: this.newTodo, state:false}
+                    this.todos.push(todo)
+                    this.newTodo="";
+                },
+                deltodos:function(idx){
+                    this.todos.splice(idx,1)
+                },
+                cleartodos:function(){
+                    this.todos=this.todos.filter(i=>!i.state)
+                }
+            },
+            computed:{
+                filetodos:function(){
+                    if (this.visibility=='all') 
+                        return this.todos
+                    else if (this.visibility=='active') 
+                        return this.todos.filter(i=>i.state==false)
+                    else if (this.visibility=='completed')
+                        return this.todos.filter(i=>i.state==true)
+                },
+                leftodonum:function(){
+                    return this.todos.filter(i=>!i.state).length
+                },
+                completetodonum:function(){
+                    return this.todos.filter(i=>i.state).length
+                }
+            }
+        })
+    </script>
+</body>
